@@ -470,6 +470,7 @@ class _Shared:
     def __str__(self):
         return "OpenAI Chat: {}".format(self.model_id)
 
+    # TODO: Add tool calls to messages
     def build_messages(self, prompt, conversation):
         messages = []
         current_system = None
