@@ -583,6 +583,7 @@ def prompt(
                 **kwargs,
             )
 
+            # TODO: add tool call results to conversation and send back to model for summarization
             tool_calls = response.tool_calls()
             async def call_tools_async(tool_calls):
                 try:

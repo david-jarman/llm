@@ -48,6 +48,7 @@ class MCPClient:
         """Clean up resources"""
         await self.exit_stack.aclose()
 
+    # TODO: Return results of tool calls
     async def call_tools(self, tool_calls: List[ToolCall]):
         """Call tools"""
         for tool_call in tool_calls:
