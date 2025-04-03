@@ -1,4 +1,4 @@
-from llm import AsyncKeyModel, EmbeddingModel, KeyModel, Tool, hookimpl
+from llm import AsyncKeyModel, EmbeddingModel, KeyModel, hookimpl
 import llm
 from llm.utils import (
     dicts_to_table_string,
@@ -13,6 +13,7 @@ import httpx
 import openai
 from openai.types.chat import ChatCompletionToolParam
 from openai.types import FunctionDefinition
+from mcp import Tool
 import os
 
 from pydantic import field_validator, Field
@@ -579,13 +580,13 @@ class Chat(_Shared, KeyModel):
         kwargs = self.build_kwargs(prompt, stream)
         client = self.get_client(key)
         usage = None
+
+        # TODO: How do we handle tool calls with streaming?
         if stream:
             completion = client.chat.completions.create(
                 model=self.model_name or self.model_id,
                 messages=messages,
                 stream=True,
-                tools=[convert_tool_to_openai(tool) for tool in prompt.tools] if prompt.tools else None,
-                tool_choice="auto" if prompt.tools else "none",
                 **kwargs,
             )
             chunks = []
@@ -611,7 +612,13 @@ class Chat(_Shared, KeyModel):
             )
             usage = completion.usage.model_dump()
             response.response_json = remove_dict_none_values(completion.model_dump())
-            yield completion.choices[0].message.content
+
+            response.tool_calls_json = completion.choices[0].message.tool_calls
+
+            if completion.choices[0].message.tool_calls:
+                yield str(completion.choices[0].message.tool_calls)
+            else:
+                yield completion.choices[0].message.content
         self.set_usage(response, usage)
         response._prompt_json = redact_data({"messages": messages})
 
@@ -813,7 +820,7 @@ def convert_tool_to_openai(tool: Tool) -> ChatCompletionToolParam:
         function = FunctionDefinition(
             name=tool.name,
             description=tool.description,
-            parameters=tool.parameters,
+            parameters=tool.inputSchema,
         ),
         type="function",
     )

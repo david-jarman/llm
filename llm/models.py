@@ -2,6 +2,8 @@ import asyncio
 import base64
 from dataclasses import dataclass, field
 import datetime
+
+from mcp import Tool
 from .errors import NeedsKeyException
 import hashlib
 import httpx
@@ -110,7 +112,7 @@ class Prompt:
     prompt_json: Optional[str]
     schema: Optional[Union[Dict, type[BaseModel]]]
     options: "Options"
-    tools: Optional[List["Tool"]] = None
+    tools: Optional[List[Tool]] = None
 
     def __init__(
         self,
@@ -261,6 +263,7 @@ class _BaseResponse:
         self._chunks: List[str] = []
         self._done = False
         self.response_json = None
+        self.tool_calls_json = None
         self.conversation = conversation
         self.attachments: List[Attachment] = []
         self._start: Optional[float] = None
@@ -433,6 +436,10 @@ class Response(_BaseResponse):
     def json(self) -> Optional[Dict[str, Any]]:
         self._force()
         return self.response_json
+    
+    def tool_calls(self):
+        self._force()
+        return self.tool_calls_json
 
     def duration_ms(self) -> int:
         self._force()
@@ -653,23 +660,6 @@ class Options(BaseModel):
 
 
 _Options = Options
-
-
-class Tool:
-    name: str
-    description: str
-    parameters: Optional[Dict[str, Any]] = None
-
-    def __init__(
-            self,
-            name: str,
-            description: str,
-            *,
-            parameters: Optional[Dict[str, Any]] = None
-        ):
-        self.name = name
-        self.description = description
-        self.parameters = parameters or {}
 
 class _get_key_mixin:
     needs_key: Optional[str] = None

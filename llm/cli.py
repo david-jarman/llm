@@ -28,7 +28,6 @@ from llm import (
     get_model,
     get_model_aliases,
     get_models_with_aliases,
-    get_mcp_tools,
     user_dir,
     set_alias,
     set_default_model,
@@ -36,6 +35,7 @@ from llm import (
     remove_alias,
 )
 from llm.models import _BaseConversation
+from llm.mcp_client import MCPClient
 
 from .migrations import migrate
 from .plugins import pm, load_plugins
@@ -526,6 +526,8 @@ def prompt(
     prompt = read_prompt()
     response = None
 
+    mcp_client = MCPClient()
+
     prompt_method = model.prompt
     if conversation:
         prompt_method = conversation.prompt
@@ -564,12 +566,21 @@ def prompt(
 
             response = asyncio.run(inner())
         else:
+            async def get_tools_async():
+                try:
+                    await mcp_client.connect_to_mcp_server()
+                    return mcp_client.list_tools()
+                finally:
+                    await mcp_client.cleanup()
+
+            tools = asyncio.run(get_tools_async())
+
             response = prompt_method(
                 prompt,
                 attachments=resolved_attachments,
                 system=system,
                 schema=schema,
-                tools=get_mcp_tools(),
+                tools=tools,
                 **kwargs,
             )
             if should_stream:
