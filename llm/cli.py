@@ -28,6 +28,7 @@ from llm import (
     get_model,
     get_model_aliases,
     get_models_with_aliases,
+    get_mcp_tools,
     user_dir,
     set_alias,
     set_default_model,
@@ -568,6 +569,7 @@ def prompt(
                 attachments=resolved_attachments,
                 system=system,
                 schema=schema,
+                tools=get_mcp_tools(),
                 **kwargs,
             )
             if should_stream:

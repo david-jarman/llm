@@ -1,4 +1,4 @@
-from llm import AsyncKeyModel, EmbeddingModel, KeyModel, hookimpl
+from llm import AsyncKeyModel, EmbeddingModel, KeyModel, Tool, hookimpl
 import llm
 from llm.utils import (
     dicts_to_table_string,
@@ -11,6 +11,8 @@ import datetime
 from enum import Enum
 import httpx
 import openai
+from openai.types.chat import ChatCompletionToolParam
+from openai.types import FunctionDefinition
 import os
 
 from pydantic import field_validator, Field
@@ -582,6 +584,8 @@ class Chat(_Shared, KeyModel):
                 model=self.model_name or self.model_id,
                 messages=messages,
                 stream=True,
+                tools=[convert_tool_to_openai(tool) for tool in prompt.tools] if prompt.tools else None,
+                tool_choice="auto" if prompt.tools else "none",
                 **kwargs,
             )
             chunks = []
@@ -601,6 +605,8 @@ class Chat(_Shared, KeyModel):
                 model=self.model_name or self.model_id,
                 messages=messages,
                 stream=False,
+                tools=[convert_tool_to_openai(tool) for tool in prompt.tools] if prompt.tools else None,
+                tool_choice="auto" if prompt.tools else "none",
                 **kwargs,
             )
             usage = completion.usage.model_dump()
@@ -798,3 +804,16 @@ def redact_data(input_dict):
         for item in input_dict:
             redact_data(item)
     return input_dict
+
+def convert_tool_to_openai(tool: Tool) -> ChatCompletionToolParam:
+    """
+    Convert a Tool instance to the OpenAI tool param type.
+    """
+    return ChatCompletionToolParam(
+        function = FunctionDefinition(
+            name=tool.name,
+            description=tool.description,
+            parameters=tool.parameters,
+        ),
+        type="function",
+    )

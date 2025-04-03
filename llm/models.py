@@ -110,6 +110,7 @@ class Prompt:
     prompt_json: Optional[str]
     schema: Optional[Union[Dict, type[BaseModel]]]
     options: "Options"
+    tools: Optional[List["Tool"]] = None
 
     def __init__(
         self,
@@ -121,6 +122,7 @@ class Prompt:
         prompt_json=None,
         options=None,
         schema=None,
+        tools=None,
     ):
         self.prompt = prompt
         self.model = model
@@ -130,6 +132,7 @@ class Prompt:
         if schema and not isinstance(schema, dict) and issubclass(schema, BaseModel):
             schema = schema.model_json_schema()
         self.schema = schema
+        self.tools = tools
         self.options = options or {}
 
 
@@ -652,6 +655,22 @@ class Options(BaseModel):
 _Options = Options
 
 
+class Tool:
+    name: str
+    description: str
+    parameters: Optional[Dict[str, Any]] = None
+
+    def __init__(
+            self,
+            name: str,
+            description: str,
+            *,
+            parameters: Optional[Dict[str, Any]] = None
+        ):
+        self.name = name
+        self.description = description
+        self.parameters = parameters or {}
+
 class _get_key_mixin:
     needs_key: Optional[str] = None
     key: Optional[str] = None
@@ -732,6 +751,7 @@ class _Model(_BaseModel):
         system: Optional[str] = None,
         stream: bool = True,
         schema: Optional[Union[dict, type[BaseModel]]] = None,
+        tools: Optional[List[Tool]] = None,
         **options,
     ) -> Response:
         key = options.pop("key", None)
@@ -744,6 +764,7 @@ class _Model(_BaseModel):
                 schema=schema,
                 model=self,
                 options=self.Options(**options),
+                tools=tools,
             ),
             self,
             stream,
@@ -772,6 +793,7 @@ class KeyModel(_Model):
         response: Response,
         conversation: Optional[Conversation],
         key: Optional[str],
+        tools: Optional[List[Tool]] = None,
     ) -> Iterator[str]:
         pass
 

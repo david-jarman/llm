@@ -18,6 +18,7 @@ from .models import (
     Options,
     Prompt,
     Response,
+    Tool,
 )
 from .utils import schema_dsl
 from .embeddings import Collection
@@ -48,6 +49,7 @@ __all__ = [
     "Options",
     "Prompt",
     "Response",
+    "Tool",
     "Template",
     "user_dir",
     "schema_dsl",
@@ -97,6 +99,9 @@ def get_models_with_aliases() -> List["ModelWithAliases"]:
 
     return model_aliases
 
+# TODO: Return actual list of tools
+def get_mcp_tools() -> List[Tool]:
+    return []
 
 def get_template_loaders() -> Dict[str, Callable[[str], Template]]:
     load_plugins()
