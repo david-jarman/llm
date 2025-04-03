@@ -181,6 +181,8 @@ def cli():
     """
 
 
+# TODO: Add option to specify an mcp server (maybe support multiple?)
+# Something like --mcp git (what would the shorthand be?)
 @cli.command(name="prompt")
 @click.argument("prompt", required=False)
 @click.option("-s", "--system", help="System prompt to use")

@@ -5,6 +5,7 @@ from .models import ToolCall
 from mcp import ClientSession, StdioServerParameters, Tool
 from mcp.client.stdio import stdio_client
 
+# TODO: Add ability to register arbitrary servers
 class MCPClient:
     def __init__(self):
         self.session: Optional[ClientSession] = None

@@ -707,6 +707,10 @@ class _BaseModel(ABC, _get_key_mixin):
 
     supports_schema = False
 
+    # TODO: Validate in cli.py if model supports tool calling, and throw if user passes in --mcp for model that doesn't support it
+    # TODO: Finish adding to openai models
+    supports_tool_calling = False
+
     class Options(_Options):
         pass
 

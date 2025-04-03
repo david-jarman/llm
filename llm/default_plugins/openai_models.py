@@ -27,13 +27,13 @@ import yaml
 def register_models(register):
     # GPT-4o
     register(
-        Chat("gpt-4o", vision=True, supports_schema=True),
-        AsyncChat("gpt-4o", vision=True, supports_schema=True),
+        Chat("gpt-4o", vision=True, supports_schema=True, supports_tool_calling=True),
+        AsyncChat("gpt-4o", vision=True, supports_schema=True, supports_tool_calling=True),
         aliases=("4o",),
     )
     register(
-        Chat("chatgpt-4o-latest", vision=True),
-        AsyncChat("chatgpt-4o-latest", vision=True),
+        Chat("chatgpt-4o-latest", vision=True, supports_tool_calling=True),
+        AsyncChat("chatgpt-4o-latest", vision=True, supports_tool_calling=True),
         aliases=("chatgpt-4o",),
     )
     register(
@@ -426,11 +426,13 @@ class _Shared:
         audio=False,
         reasoning=False,
         supports_schema=False,
+        supports_tool_calling=False,
         allows_system_prompt=True,
     ):
         self.model_id = model_id
         self.key = key
         self.supports_schema = supports_schema
+        self.supports_tool_calling = supports_tool_calling,
         self.model_name = model_name
         self.api_base = api_base
         self.api_type = api_type
