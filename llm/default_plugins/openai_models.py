@@ -1,4 +1,4 @@
-from llm import AsyncKeyModel, EmbeddingModel, KeyModel, hookimpl
+from llm import AsyncKeyModel, EmbeddingModel, KeyModel, hookimpl, Response, ToolCall
 import llm
 from llm.utils import (
     dicts_to_table_string,
@@ -11,7 +11,7 @@ import datetime
 from enum import Enum
 import httpx
 import openai
-from openai.types.chat import ChatCompletionToolParam
+from openai.types.chat import ChatCompletionToolParam, ChatCompletion, ChatCompletionMessageToolCall
 from openai.types import FunctionDefinition
 from mcp import Tool
 import os
@@ -573,7 +573,7 @@ class Chat(_Shared, KeyModel):
             default=None,
         )
 
-    def execute(self, prompt, stream, response, conversation=None, key=None):
+    def execute(self, prompt, stream, response: Response, conversation=None, key=None):
         if prompt.system and not self.allows_system_prompt:
             raise NotImplementedError("Model does not support system prompts")
         messages = self.build_messages(prompt, conversation)
@@ -602,7 +602,7 @@ class Chat(_Shared, KeyModel):
                     yield content
             response.response_json = remove_dict_none_values(combine_chunks(chunks))
         else:
-            completion = client.chat.completions.create(
+            completion: ChatCompletion = client.chat.completions.create(
                 model=self.model_name or self.model_id,
                 messages=messages,
                 stream=False,
@@ -613,12 +613,14 @@ class Chat(_Shared, KeyModel):
             usage = completion.usage.model_dump()
             response.response_json = remove_dict_none_values(completion.model_dump())
 
-            response.tool_calls_json = completion.choices[0].message.tool_calls
+            message = completion.choices[0].message
 
-            if completion.choices[0].message.tool_calls:
-                yield str(completion.choices[0].message.tool_calls)
-            else:
-                yield completion.choices[0].message.content
+            response.response_tool_calls = [convert_tool_call(tool_call) for tool_call in message.tool_calls] if message.tool_calls else None
+
+            # REVIEW: When tool calls are returned, message.content is None, which causes issue because the Response generator expects a str
+            # Might need to update Response class to allow null responses.
+            # Another idea is to add a "response type" that allows the model plugins to state if the response is a tool call or chat message
+            yield message.content if message.content else ""
         self.set_usage(response, usage)
         response._prompt_json = redact_data({"messages": messages})
 
@@ -824,3 +826,6 @@ def convert_tool_to_openai(tool: Tool) -> ChatCompletionToolParam:
         ),
         type="function",
     )
+
+def convert_tool_call(tool_call: ChatCompletionMessageToolCall) -> ToolCall:
+    return ToolCall(tool_call.function.name, json.loads(tool_call.function.arguments))

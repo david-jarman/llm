@@ -44,6 +44,11 @@ class Usage:
 
 
 @dataclass
+class ToolCall:
+    name: str = None
+    arguments: Optional[Dict[str, Any]] = None
+
+@dataclass
 class Attachment:
     type: Optional[str] = None
     path: Optional[str] = None
@@ -263,7 +268,7 @@ class _BaseResponse:
         self._chunks: List[str] = []
         self._done = False
         self.response_json = None
-        self.tool_calls_json = None
+        self.response_tool_calls: Optional[List[ToolCall]] = None
         self.conversation = conversation
         self.attachments: List[Attachment] = []
         self._start: Optional[float] = None
@@ -437,9 +442,9 @@ class Response(_BaseResponse):
         self._force()
         return self.response_json
     
-    def tool_calls(self):
+    def tool_calls(self) -> Optional[List[ToolCall]]:
         self._force()
-        return self.tool_calls_json
+        return self.response_tool_calls
 
     def duration_ms(self) -> int:
         self._force()

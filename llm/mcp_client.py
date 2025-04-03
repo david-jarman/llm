@@ -1,6 +1,6 @@
-import asyncio
 from typing import List, Optional
 from contextlib import AsyncExitStack
+from .models import ToolCall
 
 from mcp import ClientSession, StdioServerParameters, Tool
 from mcp.client.stdio import stdio_client
@@ -38,7 +38,6 @@ class MCPClient:
         # List available tools
         response = await self.session.list_tools()
         self.tools = response.tools
-        print("\nConnected to server with tools:", [tool.name for tool in self.tools])
 
     def list_tools(self) -> List[Tool]:
         """List available tools"""
@@ -48,3 +47,10 @@ class MCPClient:
     async def cleanup(self):
         """Clean up resources"""
         await self.exit_stack.aclose()
+
+    async def call_tools(self, tool_calls: List[ToolCall]):
+        """Call tools"""
+        for tool_call in tool_calls:
+            result = await self.session.call_tool(tool_call.name, tool_call.arguments)
+            for x in result.content:
+                print(x)

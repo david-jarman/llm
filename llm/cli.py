@@ -526,8 +526,6 @@ def prompt(
     prompt = read_prompt()
     response = None
 
-    mcp_client = MCPClient()
-
     prompt_method = model.prompt
     if conversation:
         prompt_method = conversation.prompt
@@ -568,6 +566,7 @@ def prompt(
         else:
             async def get_tools_async():
                 try:
+                    mcp_client = MCPClient()
                     await mcp_client.connect_to_mcp_server()
                     return mcp_client.list_tools()
                 finally:
@@ -583,6 +582,18 @@ def prompt(
                 tools=tools,
                 **kwargs,
             )
+
+            tool_calls = response.tool_calls()
+            async def call_tools_async(tool_calls):
+                try:
+                    mcp_client = MCPClient()
+                    await mcp_client.connect_to_mcp_server()
+                    await mcp_client.call_tools(tool_calls)
+                finally:
+                    await mcp_client.cleanup()
+            if (tool_calls):
+                asyncio.run(call_tools_async(tool_calls))
+
             if should_stream:
                 for chunk in response:
                     print(chunk, end="")
