@@ -45,7 +45,7 @@ class Usage:
 
 @dataclass
 class ToolCall:
-    name: str
+    name: str  # Name is required and cannot be None
     arguments: Optional[Dict[str, Any]] = None
 
 @dataclass
@@ -167,6 +167,7 @@ class Conversation(_BaseConversation):
         schema: Optional[Union[dict, type[BaseModel]]] = None,
         stream: bool = True,
         key: Optional[str] = None,
+        tools: Optional[List[Tool]] = None,
         **options,
     ) -> "Response":
         return Response(
@@ -177,6 +178,7 @@ class Conversation(_BaseConversation):
                 system=system,
                 schema=schema,
                 options=self.model.Options(**options),
+                tools=tools,
             ),
             self.model,
             stream,
@@ -211,6 +213,7 @@ class AsyncConversation(_BaseConversation):
         schema: Optional[Union[dict, type[BaseModel]]] = None,
         stream: bool = True,
         key: Optional[str] = None,
+        tools: Optional[List[Tool]] = None,
         **options,
     ) -> "AsyncResponse":
         return AsyncResponse(
@@ -221,6 +224,7 @@ class AsyncConversation(_BaseConversation):
                 system=system,
                 schema=schema,
                 options=self.model.Options(**options),
+                tools=tools,
             ),
             self.model,
             stream,
@@ -808,6 +812,7 @@ class _AsyncModel(_BaseModel):
         system: Optional[str] = None,
         schema: Optional[Union[dict, type[BaseModel]]] = None,
         stream: bool = True,
+        tools: Optional[List[Tool]] = None,
         **options,
     ) -> AsyncResponse:
         key = options.pop("key", None)
@@ -820,6 +825,7 @@ class _AsyncModel(_BaseModel):
                 schema=schema,
                 model=self,
                 options=self.Options(**options),
+                tools=tools,
             ),
             self,
             stream,

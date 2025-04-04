@@ -35,7 +35,7 @@ from llm import (
     remove_alias,
 )
 from llm.models import _BaseConversation
-from llm.mcp_client import AsyncMCPClient, BaseMCPClient, MCPClient
+from llm.mcp_client import AsyncMCPClient, BaseSyncMCPClient, MCPClient
 
 from .migrations import migrate
 from .plugins import pm, load_plugins
@@ -535,9 +535,12 @@ def prompt(
     try:
         if async_:
             async def inner():
-                mcp_client = AsyncMCPClient()
-                await mcp_client.connect_to_mcp_server()
-                tools = await mcp_client.list_tools()
+                tools = []
+
+                if False:
+                    mcp_client = AsyncMCPClient()
+                    await mcp_client.connect_to_mcp_server()
+                    tools = await mcp_client.list_tools()
 
                 if should_stream:
                     response = prompt_method(
@@ -571,9 +574,12 @@ def prompt(
 
             response = asyncio.run(inner())
         else:
-            mcp_client = MCPClient()
-            mcp_client.connect_to_mcp_server()
-            tools = mcp_client.list_tools()
+            # TODO: Add flag to cli to enable mcp
+            tools = []
+            if False:
+                mcp_client = MCPClient()
+                mcp_client.connect_to_mcp_server()
+                tools = mcp_client.list_tools()
 
             response = prompt_method(
                 prompt,
@@ -585,12 +591,12 @@ def prompt(
             )
 
             # TODO: add tool call results to conversation and send back to model for summarization
-            tool_calls = response.tool_calls()
+            #tool_calls = response.tool_calls()
 
-            if (tool_calls):
-                results = mcp_client.call_tools(tool_calls)
-                for result in results:
-                    print(result)
+            #if (tool_calls):
+            #    results = mcp_client.call_tools(tool_calls)
+            #    for result in results:
+            #        print(result)
 
             if should_stream:
                 for chunk in response:

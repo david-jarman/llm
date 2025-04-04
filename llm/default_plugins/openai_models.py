@@ -672,11 +672,20 @@ class AsyncChat(_Shared, AsyncKeyModel):
                 model=self.model_name or self.model_id,
                 messages=messages,
                 stream=False,
+                tools=[convert_tool_to_openai(tool) for tool in prompt.tools] if prompt.tools else None,
+                tool_choice="auto" if prompt.tools else "none",
                 **kwargs,
             )
-            response.response_json = remove_dict_none_values(completion.model_dump())
             usage = completion.usage.model_dump()
-            yield completion.choices[0].message.content
+            response.response_json = remove_dict_none_values(completion.model_dump())
+            
+            message = completion.choices[0].message
+            
+            response.response_tool_calls = [convert_tool_call(tool_call) for tool_call in message.tool_calls] if message.tool_calls else None
+            
+            # When tool calls are returned, message.content can be None
+            yield message.content if message.content else ""
+            
         self.set_usage(response, usage)
         response._prompt_json = redact_data({"messages": messages})
 
