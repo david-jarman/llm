@@ -1,4 +1,4 @@
-from typing import List, Optional, Any, Coroutine
+from typing import List, Optional, Any, Coroutine, Dict
 from contextlib import AsyncExitStack
 import asyncio
 from .models import ToolCall
@@ -7,11 +7,10 @@ from mcp import ClientSession, StdioServerParameters, Tool
 from mcp.types import CallToolResult
 from mcp.client.stdio import stdio_client
 
-servers = {
+servers: Dict[str, Dict[str, Any]] = {
     "git": {
         "command": "uvx",
         "args": ["mcp-server-git"],
-        "env": None,
     },
 }
 
@@ -19,21 +18,23 @@ servers = {
 class AsyncMCPClient:
     """Asynchronous implementation of MCP client."""
 
-    def __init__(self, server: str):
+    def __init__(self, server_name: str):
         self.session: Optional[ClientSession] = None
         self.exit_stack = AsyncExitStack()
 
-        server = servers.get(server)
+        server = servers.get(server_name)
         if server is None:
-            raise ValueError(f"Unknown server: {server}")
-        self.command = server["command"]
-        self.args = server["args"]
-        self.env = server["env"]
+            raise ValueError(f"Unknown server: {server_name}")
+
+        # Get server command string
+        self.command = str(server["command"])
+        args = server.get("args")
+        self.args: List[str] = list(args) if args is not None else []
 
     async def connect_to_mcp_server(self) -> None:
         """Connect to an MCP server asynchronously."""
         server_params = StdioServerParameters(
-            command=self.command, args=self.args, env=self.env
+            command=self.command, args=self.args, env=None
         )
 
         stdio_transport = await self.exit_stack.enter_async_context(

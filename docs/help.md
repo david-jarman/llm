@@ -139,6 +139,7 @@ Options:
   -u, --usage                     Show token usage
   -x, --extract                   Extract first fenced code block
   --xl, --extract-last            Extract last fenced code block
+  --mcp TEXT                      MCP server to connect to
   --help                          Show this message and exit.
 ```
 
