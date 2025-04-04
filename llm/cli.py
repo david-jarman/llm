@@ -534,6 +534,7 @@ def prompt(
 
     try:
         if async_:
+
             async def inner():
                 tools = []
 
@@ -591,9 +592,9 @@ def prompt(
             )
 
             # TODO: add tool call results to conversation and send back to model for summarization
-            #tool_calls = response.tool_calls()
+            # tool_calls = response.tool_calls()
 
-            #if (tool_calls):
+            # if (tool_calls):
             #    results = mcp_client.call_tools(tool_calls)
             #    for result in results:
             #        print(result)

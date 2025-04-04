@@ -8,44 +8,47 @@ from mcp import ClientSession, StdioServerParameters, Tool
 from mcp.types import CallToolResult
 from mcp.client.stdio import stdio_client
 
+
 @runtime_checkable
 class MCPClientProtocol(Protocol):
     """Protocol for MCP clients."""
-    
+
     def connect_to_mcp_server(self) -> None:
         """Connect to an MCP server."""
         ...
-        
+
     def list_tools(self) -> List[Tool]:
         """List available tools."""
         ...
-        
+
     def cleanup(self) -> None:
         """Clean up resources."""
         ...
-        
+
     def call_tools(self, tool_calls: List[ToolCall]) -> List[CallToolResult]:
         """Call tools."""
         ...
 
+
 class AsyncMCPClientProtocol(Protocol):
     """Protocol for async MCP clients."""
-    
+
     async def connect_to_mcp_server(self) -> None:
         """Connect to an MCP server."""
         ...
-        
+
     async def list_tools(self) -> List[Tool]:
         """List available tools."""
         ...
-        
+
     async def cleanup(self) -> None:
         """Clean up resources."""
         ...
-        
+
     async def call_tools(self, tool_calls: List[ToolCall]) -> List[CallToolResult]:
         """Call tools."""
         ...
+
 
 class BaseSyncMCPClient(ABC):
     """Abstract base class for synchronous MCP clients."""
@@ -70,6 +73,7 @@ class BaseSyncMCPClient(ABC):
         """Call tools."""
         pass
 
+
 class BaseAsyncMCPClient(ABC):
     """Abstract base class for asynchronous MCP clients."""
 
@@ -93,10 +97,11 @@ class BaseAsyncMCPClient(ABC):
         """Call tools."""
         pass
 
+
 class AsyncMCPClient(BaseAsyncMCPClient):
     """Asynchronous implementation of MCP client."""
 
-    def __init__(self, command: str = 'uvx', args: List[str] = ["mcp-server-git"]):
+    def __init__(self, command: str = "uvx", args: List[str] = ["mcp-server-git"]):
         self.session: Optional[ClientSession] = None
         self.exit_stack = AsyncExitStack()
         self.command = command
@@ -105,14 +110,16 @@ class AsyncMCPClient(BaseAsyncMCPClient):
     async def connect_to_mcp_server(self) -> None:
         """Connect to an MCP server asynchronously."""
         server_params = StdioServerParameters(
-            command=self.command,
-            args=self.args,
-            env=None
+            command=self.command, args=self.args, env=None
         )
 
-        stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
+        stdio_transport = await self.exit_stack.enter_async_context(
+            stdio_client(server_params)
+        )
         self.stdio, self.write = stdio_transport
-        self.session = await self.exit_stack.enter_async_context(ClientSession(self.stdio, self.write))
+        self.session = await self.exit_stack.enter_async_context(
+            ClientSession(self.stdio, self.write)
+        )
 
         await self.session.initialize()
 
@@ -120,7 +127,7 @@ class AsyncMCPClient(BaseAsyncMCPClient):
         """List available tools."""
         if self.session is None:
             raise RuntimeError("MCP client is not connected to a server.")
-        
+
         response = await self.session.list_tools()
         return response.tools
 
@@ -135,24 +142,27 @@ class AsyncMCPClient(BaseAsyncMCPClient):
 
         results = []
         for tool_call in tool_calls:
-            result = await self.session.call_tool(tool_call.name, tool_call.arguments or {})
+            result = await self.session.call_tool(
+                tool_call.name, tool_call.arguments or {}
+            )
             results.append(result)
         return results
 
+
 class MCPClient(BaseSyncMCPClient):
     """Synchronous implementation of MCP client."""
-    
-    def __init__(self, command: str = 'uvx', args: List[str] = ["mcp-server-git"]):
+
+    def __init__(self, command: str = "uvx", args: List[str] = ["mcp-server-git"]):
         self.async_client = AsyncMCPClient(command, args)
         self.loop: Optional[asyncio.AbstractEventLoop] = None
         self._connected = False
-    
+
     def _ensure_loop(self):
         """Ensure we have an event loop."""
         if self.loop is None or self.loop.is_closed():
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
-    
+
     def _run_async(self, coro: Coroutine) -> Any:
         """Run async coroutine in the event loop."""
         self._ensure_loop()
@@ -168,7 +178,7 @@ class MCPClient(BaseSyncMCPClient):
                     raise RuntimeError("No event loop available")
                 return self.loop.run_until_complete(coro)
             raise
-    
+
     def connect_to_mcp_server(self) -> None:
         """Connect to an MCP server synchronously."""
         try:
@@ -177,7 +187,7 @@ class MCPClient(BaseSyncMCPClient):
         except Exception as e:
             self.cleanup()
             raise e
-    
+
     def list_tools(self) -> List[Tool]:
         """List available tools."""
         if not self._connected:
@@ -187,11 +197,11 @@ class MCPClient(BaseSyncMCPClient):
         except Exception as e:
             self.cleanup()
             raise e
-    
+
     def cleanup(self) -> None:
         """Clean up resources synchronously."""
         self._connected = False
-        
+
         # First clean up the async client
         if self.loop and not self.loop.is_closed():
             try:
@@ -199,14 +209,16 @@ class MCPClient(BaseSyncMCPClient):
             except Exception:
                 # Best effort cleanup
                 pass
-        
+
         # Then close the loop
         if self.loop and not self.loop.is_closed():
             try:
                 # Run all pending tasks to completion
                 pending = asyncio.all_tasks(self.loop)
                 if pending:
-                    self.loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                    self.loop.run_until_complete(
+                        asyncio.gather(*pending, return_exceptions=True)
+                    )
                 self.loop.close()
             except Exception:
                 # Best effort cleanup
@@ -221,7 +233,7 @@ class MCPClient(BaseSyncMCPClient):
         except Exception as e:
             self.cleanup()
             raise e
-    
+
     def __del__(self):
         """Destructor to ensure cleanup."""
         self.cleanup()

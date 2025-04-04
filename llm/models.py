@@ -48,6 +48,7 @@ class ToolCall:
     name: str  # Name is required and cannot be None
     arguments: Optional[Dict[str, Any]] = None
 
+
 @dataclass
 class Attachment:
     type: Optional[str] = None
@@ -445,7 +446,7 @@ class Response(_BaseResponse):
     def json(self) -> Optional[Dict[str, Any]]:
         self._force()
         return self.response_json
-    
+
     def tool_calls(self) -> Optional[List[ToolCall]]:
         self._force()
         return self.response_tool_calls
@@ -669,6 +670,7 @@ class Options(BaseModel):
 
 
 _Options = Options
+
 
 class _get_key_mixin:
     needs_key: Optional[str] = None

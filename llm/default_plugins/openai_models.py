@@ -28,7 +28,9 @@ def register_models(register):
     # GPT-4o
     register(
         Chat("gpt-4o", vision=True, supports_schema=True, supports_tool_calling=True),
-        AsyncChat("gpt-4o", vision=True, supports_schema=True, supports_tool_calling=True),
+        AsyncChat(
+            "gpt-4o", vision=True, supports_schema=True, supports_tool_calling=True
+        ),
         aliases=("4o",),
     )
     register(
@@ -612,7 +614,9 @@ class Chat(_Shared, KeyModel):
                 **kwargs,
             }
             if prompt.tools:
-                completion_kwargs["tools"] = [convert_tool_to_openai(tool) for tool in prompt.tools]
+                completion_kwargs["tools"] = [
+                    convert_tool_to_openai(tool) for tool in prompt.tools
+                ]
                 completion_kwargs["tool_choice"] = "auto"
             completion = client.chat.completions.create(**completion_kwargs)
             usage = completion.usage.model_dump()
@@ -620,7 +624,11 @@ class Chat(_Shared, KeyModel):
 
             message = completion.choices[0].message
 
-            response.response_tool_calls = [convert_tool_call(tool_call) for tool_call in message.tool_calls] if message.tool_calls else None
+            response.response_tool_calls = (
+                [convert_tool_call(tool_call) for tool_call in message.tool_calls]
+                if message.tool_calls
+                else None
+            )
 
             # REVIEW: When tool calls are returned, message.content is None, which causes issue because the Response generator expects a str
             # Might need to update Response class to allow null responses.
@@ -677,19 +685,25 @@ class AsyncChat(_Shared, AsyncKeyModel):
                 **kwargs,
             }
             if prompt.tools:
-                completion_kwargs["tools"] = [convert_tool_to_openai(tool) for tool in prompt.tools]
+                completion_kwargs["tools"] = [
+                    convert_tool_to_openai(tool) for tool in prompt.tools
+                ]
                 completion_kwargs["tool_choice"] = "auto"
             completion = await client.chat.completions.create(**completion_kwargs)
             usage = completion.usage.model_dump()
             response.response_json = remove_dict_none_values(completion.model_dump())
-            
+
             message = completion.choices[0].message
-            
-            response.response_tool_calls = [convert_tool_call(tool_call) for tool_call in message.tool_calls] if message.tool_calls else None
-            
+
+            response.response_tool_calls = (
+                [convert_tool_call(tool_call) for tool_call in message.tool_calls]
+                if message.tool_calls
+                else None
+            )
+
             # When tool calls are returned, message.content can be None
             yield message.content if message.content else ""
-            
+
         self.set_usage(response, usage)
         response._prompt_json = redact_data({"messages": messages})
 
@@ -830,18 +844,22 @@ def redact_data(input_dict):
             redact_data(item)
     return input_dict
 
+
 def convert_tool_to_openai(tool: Tool) -> ChatCompletionToolParam:
     """
     Convert a Tool instance to the OpenAI tool param type.
     """
     return ChatCompletionToolParam(
-        function = FunctionDefinition(
+        function=FunctionDefinition(
             name=tool.name,
-            description=tool.description if tool.description else "No description given",
+            description=(
+                tool.description if tool.description else "No description given"
+            ),
             parameters=tool.inputSchema,
         ),
         type="function",
     )
+
 
 def convert_tool_call(tool_call: ChatCompletionMessageToolCall) -> ToolCall:
     return ToolCall(tool_call.function.name, json.loads(tool_call.function.arguments))
