@@ -499,9 +499,19 @@ class _Shared:
                     messages.append(
                         {"role": "user", "content": prev_response.prompt.prompt}
                     )
-                messages.append(
-                    {"role": "assistant", "content": prev_response.text_or_raise()}
-                )
+
+                # If the previous response has tool calls, add them to the messages, there will not be content to add.
+                if prev_response.response_tool_calls_json:
+                    messages.append(
+                        {
+                            "role": "assistant",
+                            "tool_calls": prev_response.response_tool_calls_json,
+                        }
+                    )
+                else:
+                    messages.append(
+                        {"role": "assistant", "content": prev_response.text_or_raise()}
+                    )
         if prompt.system and prompt.system != current_system:
             messages.append({"role": "system", "content": prompt.system})
         if not prompt.attachments:
@@ -627,11 +637,14 @@ class Chat(_Shared, KeyModel):
 
             message = completion.choices[0].message
 
-            response.response_tool_calls = (
-                [convert_tool_call(tool_call) for tool_call in message.tool_calls]
-                if message.tool_calls
-                else None
-            )
+            if message.tool_calls:
+                response.response_tool_calls = [
+                    convert_tool_call(tool_call) for tool_call in message.tool_calls
+                ]
+                # Store the tool calls in the response as json, so we can reconstruct them in a conversation later.
+                response.response_tool_calls_json = remove_dict_none_values(
+                    message.tool_calls.model_dump()
+                )
 
             # REVIEW: When tool calls are returned, message.content is None, which causes issue because the Response generator expects a str
             # Might need to update Response class to allow null responses.
@@ -676,11 +689,15 @@ class AsyncChat(_Shared, AsyncKeyModel):
                 try:
                     delta = chunk.choices[0].delta
                     content = delta.content
-                    response.response_tool_calls = (
-                        [convert_tool_call(tool_call) for tool_call in delta.tool_calls]
-                        if delta.tool_calls
-                        else None
-                    )
+
+                    if delta.tool_calls:
+                        response.response_tool_calls = [
+                            convert_tool_call(tool_call)
+                            for tool_call in delta.tool_calls
+                        ]
+                        response.response_tool_calls_json = remove_dict_none_values(
+                            delta.tool_calls.model_dump()
+                        )
                 except IndexError:
                     content = None
                 if content is not None:

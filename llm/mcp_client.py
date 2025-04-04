@@ -58,15 +58,9 @@ class MCPClient:
         """Clean up resources asynchronously."""
         await self.exit_stack.aclose()
 
-    async def call_tools(self, tool_calls: List[ToolCall]) -> List[CallToolResult]:
+    async def call_tool(self, tool_call: ToolCall) -> CallToolResult:
         """Call tools asynchronously."""
         if self.session is None:
             raise RuntimeError("MCP client is not connected to a server.")
 
-        results = []
-        for tool_call in tool_calls:
-            result = await self.session.call_tool(
-                tool_call.name, tool_call.arguments or {}
-            )
-            results.append(result)
-        return results
+        return await self.session.call_tool(tool_call.name, tool_call.arguments or {})

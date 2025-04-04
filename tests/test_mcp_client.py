@@ -76,7 +76,7 @@ class TestMCPClient:
         await client.cleanup()
         client.exit_stack.aclose.assert_called_once()
 
-    async def test_call_tools(self):
+    async def test_call_tool(self):
         client = MCPClient("git")
         client.session = AsyncMock()
 
@@ -88,9 +88,12 @@ class TestMCPClient:
         result2 = MockCallToolResult(id="2", result="result2")
         client.session.call_tool.side_effect = [result1, result2]
 
-        results = await client.call_tools([tool_call1, tool_call2])
+        toolCallResult1 = await client.call_tool(tool_call1)
+        assert toolCallResult1 == result1
 
-        assert results == [result1, result2]
+        toolCallResult2 = await client.call_tool(tool_call2)
+        assert toolCallResult2 == result2
+
         assert client.session.call_tool.call_count == 2
         client.session.call_tool.assert_any_call("tool1", {"arg1": "value1"})
         client.session.call_tool.assert_any_call("tool2", {"arg2": "value2"})
@@ -100,7 +103,7 @@ class TestMCPClient:
         client.session.call_tool.side_effect = [result1]
         tool_call_no_args = ToolCall(name="tool1")
 
-        results = await client.call_tools([tool_call_no_args])
+        await client.call_tool(tool_call_no_args)
         client.session.call_tool.assert_called_once_with("tool1", {})
 
         # Test with no session
@@ -108,4 +111,4 @@ class TestMCPClient:
         with pytest.raises(
             RuntimeError, match="MCP client is not connected to a server."
         ):
-            await client.call_tools([tool_call1])
+            await client.call_tool(tool_call1)
