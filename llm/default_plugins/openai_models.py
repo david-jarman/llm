@@ -432,7 +432,7 @@ class _Shared:
         self.model_id = model_id
         self.key = key
         self.supports_schema = supports_schema
-        self.supports_tool_calling = supports_tool_calling,
+        self.supports_tool_calling = supports_tool_calling
         self.model_name = model_name
         self.api_base = api_base
         self.api_type = api_type
@@ -605,14 +605,16 @@ class Chat(_Shared, KeyModel):
                     yield content
             response.response_json = remove_dict_none_values(combine_chunks(chunks))
         else:
-            completion = client.chat.completions.create(
-                model=self.model_name or self.model_id,
-                messages=messages,
-                stream=False,
-                tools=[convert_tool_to_openai(tool) for tool in prompt.tools] if prompt.tools else None,
-                tool_choice="auto" if prompt.tools else "none",
+            completion_kwargs = {
+                "model": self.model_name or self.model_id,
+                "messages": messages,
+                "stream": False,
                 **kwargs,
-            )
+            }
+            if prompt.tools:
+                completion_kwargs["tools"] = [convert_tool_to_openai(tool) for tool in prompt.tools]
+                completion_kwargs["tool_choice"] = "auto"
+            completion = client.chat.completions.create(**completion_kwargs)
             usage = completion.usage.model_dump()
             response.response_json = remove_dict_none_values(completion.model_dump())
 
@@ -668,14 +670,16 @@ class AsyncChat(_Shared, AsyncKeyModel):
                     yield content
             response.response_json = remove_dict_none_values(combine_chunks(chunks))
         else:
-            completion = await client.chat.completions.create(
-                model=self.model_name or self.model_id,
-                messages=messages,
-                stream=False,
-                tools=[convert_tool_to_openai(tool) for tool in prompt.tools] if prompt.tools else None,
-                tool_choice="auto" if prompt.tools else "none",
+            completion_kwargs = {
+                "model": self.model_name or self.model_id,
+                "messages": messages,
+                "stream": False,
                 **kwargs,
-            )
+            }
+            if prompt.tools:
+                completion_kwargs["tools"] = [convert_tool_to_openai(tool) for tool in prompt.tools]
+                completion_kwargs["tool_choice"] = "auto"
+            completion = await client.chat.completions.create(**completion_kwargs)
             usage = completion.usage.model_dump()
             response.response_json = remove_dict_none_values(completion.model_dump())
             

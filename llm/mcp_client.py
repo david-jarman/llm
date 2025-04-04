@@ -1,12 +1,11 @@
-from typing import List, Optional, Any, Coroutine, Protocol, runtime_checkable, AsyncIterator, overload
-from contextlib import AsyncExitStack, ExitStack
+from typing import List, Optional, Any, Coroutine, Protocol, runtime_checkable
+from contextlib import AsyncExitStack
 import asyncio
-import concurrent.futures
 from abc import ABC, abstractmethod
 from .models import ToolCall
 
 from mcp import ClientSession, StdioServerParameters, Tool
-from mcp.types import CallToolResult, ListToolsResult
+from mcp.types import CallToolResult
 from mcp.client.stdio import stdio_client
 
 @runtime_checkable
@@ -145,7 +144,7 @@ class MCPClient(BaseSyncMCPClient):
     
     def __init__(self, command: str = 'uvx', args: List[str] = ["mcp-server-git"]):
         self.async_client = AsyncMCPClient(command, args)
-        self.loop = None
+        self.loop: Optional[asyncio.AbstractEventLoop] = None
         self._connected = False
     
     def _ensure_loop(self):
@@ -158,11 +157,15 @@ class MCPClient(BaseSyncMCPClient):
         """Run async coroutine in the event loop."""
         self._ensure_loop()
         try:
+            if self.loop is None:
+                raise RuntimeError("No event loop available")
             return self.loop.run_until_complete(coro)
         except RuntimeError as e:
             # Handle "Event loop is closed" errors
             if "Event loop is closed" in str(e):
                 self._ensure_loop()
+                if self.loop is None:
+                    raise RuntimeError("No event loop available")
                 return self.loop.run_until_complete(coro)
             raise
     

@@ -35,7 +35,7 @@ from llm import (
     remove_alias,
 )
 from llm.models import _BaseConversation
-from llm.mcp_client import AsyncMCPClient, BaseSyncMCPClient, MCPClient
+from llm.mcp_client import AsyncMCPClient, MCPClient
 
 from .migrations import migrate
 from .plugins import pm, load_plugins
