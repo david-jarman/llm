@@ -35,7 +35,7 @@ from llm import (
     remove_alias,
 )
 from llm.models import _BaseConversation
-from llm.mcp_client import AsyncMCPClient, MCPClient
+from llm.mcp_client import MCPClient
 
 from .migrations import migrate
 from .plugins import pm, load_plugins
@@ -544,10 +544,10 @@ def prompt(
 
             async def inner():
                 tools = []
-                mcp_client: Optional[AsyncMCPClient] = None
+                mcp_client: Optional[MCPClient] = None
 
                 if mcp_server:
-                    mcp_client = AsyncMCPClient(mcp_server)
+                    mcp_client = MCPClient(mcp_server)
                     await mcp_client.connect_to_mcp_server()
                     tools = await mcp_client.list_tools()
 
@@ -583,53 +583,61 @@ def prompt(
 
             response = asyncio.run(inner())
         else:
-            tools = []
-            mcp_client: Optional[MCPClient] = None
 
-            if mcp_server:
-                mcp_client = MCPClient(mcp_server)
-                mcp_client.connect_to_mcp_server()
-                tools = mcp_client.list_tools()
+            async def inner():
+                tools = []
+                mcp_client: Optional[MCPClient] = None
 
-            response = prompt_method(
-                prompt,
-                attachments=resolved_attachments,
-                system=system,
-                schema=schema,
-                tools=tools,
-                **kwargs,
-            )
+                if mcp_server:
+                    mcp_client = MCPClient(mcp_server)
+                    await mcp_client.connect_to_mcp_server()
+                    tools = await mcp_client.list_tools()
 
-            # conversation = conversation or Conversation(
-            #     model=model,
-            #     responses=[response])
+                response = prompt_method(
+                    prompt,
+                    attachments=resolved_attachments,
+                    system=system,
+                    schema=schema,
+                    tools=tools,
+                    **kwargs,
+                )
 
-            # tool_summary_response = conversation.prompt(prompt=None,
-            #     attachments=resolved_attachments,
-            #     system=system,
-            #     schema=schema,
-            #     tools=tools,
-            #     **kwargs,
-            # )
+                # conversation = conversation or Conversation(
+                #     model=model,
+                #     responses=[response])
 
-            # TODO: add tool call results to conversation and send back to model for summarization
-            # tool_calls = response.tool_calls()
+                # tool_summary_response = conversation.prompt(prompt=None,
+                #     attachments=resolved_attachments,
+                #     system=system,
+                #     schema=schema,
+                #     tools=tools,
+                #     **kwargs,
+                # )
 
-            # if (tool_calls):
-            #    results = mcp_client.call_tools(tool_calls)
-            #    for result in results:
-            #        print(result)
+                # TODO: add tool call results to conversation and send back to model for summarization
+                # tool_calls = response.tool_calls()
 
-            if should_stream:
-                for chunk in response:
-                    print(chunk, end="")
-                    sys.stdout.flush()
-                print("")
-            else:
-                text = response.text()
-                if extract or extract_last:
-                    text = extract_fenced_code_block(text, last=extract_last) or text
-                print(text)
+                # if (tool_calls):
+                #    results = mcp_client.call_tools(tool_calls)
+                #    for result in results:
+                #        print(result)
+
+                if should_stream:
+                    for chunk in response:
+                        print(chunk, end="")
+                        sys.stdout.flush()
+                    print("")
+                else:
+                    text = response.text()
+                    if extract or extract_last:
+                        text = (
+                            extract_fenced_code_block(text, last=extract_last) or text
+                        )
+                    print(text)
+
+                return response
+
+            response = asyncio.run(inner())
     # List of exceptions that should never be raised in pytest:
     except (ValueError, NotImplementedError) as ex:
         raise click.ClickException(str(ex))
