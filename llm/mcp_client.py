@@ -1,116 +1,38 @@
-from typing import List, Optional, Any, Coroutine, Protocol, runtime_checkable
+from typing import List, Optional, Any, Coroutine
 from contextlib import AsyncExitStack
 import asyncio
-from abc import ABC, abstractmethod
 from .models import ToolCall
 
 from mcp import ClientSession, StdioServerParameters, Tool
 from mcp.types import CallToolResult
 from mcp.client.stdio import stdio_client
 
+servers = {
+    "git": {
+        "command": "uvx",
+        "args": ["mcp-server-git"],
+        "env": None,
+    },
+}
 
-@runtime_checkable
-class MCPClientProtocol(Protocol):
-    """Protocol for MCP clients."""
-
-    def connect_to_mcp_server(self) -> None:
-        """Connect to an MCP server."""
-        ...
-
-    def list_tools(self) -> List[Tool]:
-        """List available tools."""
-        ...
-
-    def cleanup(self) -> None:
-        """Clean up resources."""
-        ...
-
-    def call_tools(self, tool_calls: List[ToolCall]) -> List[CallToolResult]:
-        """Call tools."""
-        ...
-
-
-class AsyncMCPClientProtocol(Protocol):
-    """Protocol for async MCP clients."""
-
-    async def connect_to_mcp_server(self) -> None:
-        """Connect to an MCP server."""
-        ...
-
-    async def list_tools(self) -> List[Tool]:
-        """List available tools."""
-        ...
-
-    async def cleanup(self) -> None:
-        """Clean up resources."""
-        ...
-
-    async def call_tools(self, tool_calls: List[ToolCall]) -> List[CallToolResult]:
-        """Call tools."""
-        ...
-
-
-class BaseSyncMCPClient(ABC):
-    """Abstract base class for synchronous MCP clients."""
-
-    @abstractmethod
-    def connect_to_mcp_server(self) -> None:
-        """Connect to an MCP server."""
-        pass
-
-    @abstractmethod
-    def list_tools(self) -> List[Tool]:
-        """List available tools."""
-        pass
-
-    @abstractmethod
-    def cleanup(self) -> None:
-        """Clean up resources."""
-        pass
-
-    @abstractmethod
-    def call_tools(self, tool_calls: List[ToolCall]) -> List[CallToolResult]:
-        """Call tools."""
-        pass
-
-
-class BaseAsyncMCPClient(ABC):
-    """Abstract base class for asynchronous MCP clients."""
-
-    @abstractmethod
-    async def connect_to_mcp_server(self) -> None:
-        """Connect to an MCP server."""
-        pass
-
-    @abstractmethod
-    async def list_tools(self) -> List[Tool]:
-        """List available tools."""
-        pass
-
-    @abstractmethod
-    async def cleanup(self) -> None:
-        """Clean up resources."""
-        pass
-
-    @abstractmethod
-    async def call_tools(self, tool_calls: List[ToolCall]) -> List[CallToolResult]:
-        """Call tools."""
-        pass
-
-
-class AsyncMCPClient(BaseAsyncMCPClient):
+class AsyncMCPClient:
     """Asynchronous implementation of MCP client."""
 
-    def __init__(self, command: str = "uvx", args: List[str] = ["mcp-server-git"]):
+    def __init__(self, server: str):
         self.session: Optional[ClientSession] = None
         self.exit_stack = AsyncExitStack()
-        self.command = command
-        self.args = args
+
+        server = servers.get(server)
+        if server is None:
+            raise ValueError(f"Unknown server: {server}")
+        self.command = server["command"]
+        self.args = server["args"]
+        self.env = server["env"]
 
     async def connect_to_mcp_server(self) -> None:
         """Connect to an MCP server asynchronously."""
         server_params = StdioServerParameters(
-            command=self.command, args=self.args, env=None
+            command=self.command, args=self.args, env=self.env
         )
 
         stdio_transport = await self.exit_stack.enter_async_context(
@@ -149,11 +71,11 @@ class AsyncMCPClient(BaseAsyncMCPClient):
         return results
 
 
-class MCPClient(BaseSyncMCPClient):
+class MCPClient:
     """Synchronous implementation of MCP client."""
 
-    def __init__(self, command: str = "uvx", args: List[str] = ["mcp-server-git"]):
-        self.async_client = AsyncMCPClient(command, args)
+    def __init__(self, server: str):
+        self.async_client = AsyncMCPClient(server)
         self.loop: Optional[asyncio.AbstractEventLoop] = None
         self._connected = False
 

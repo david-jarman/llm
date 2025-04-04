@@ -267,6 +267,12 @@ def cli():
     is_flag=True,
     help="Extract last fenced code block",
 )
+@click.option(
+    "mcp_server",
+    "--mcp",
+    type=str,
+    help="MCP server to connect to",
+)
 def prompt(
     prompt,
     system,
@@ -291,6 +297,7 @@ def prompt(
     usage,
     extract,
     extract_last,
+    mcp_server,
 ):
     """
     Execute a prompt
@@ -537,9 +544,10 @@ def prompt(
 
             async def inner():
                 tools = []
+                mcp_client: Optional[AsyncMCPClient] = None
 
-                if False:
-                    mcp_client = AsyncMCPClient()
+                if mcp_server:
+                    mcp_client = AsyncMCPClient(mcp_server)
                     await mcp_client.connect_to_mcp_server()
                     tools = await mcp_client.list_tools()
 
@@ -575,10 +583,11 @@ def prompt(
 
             response = asyncio.run(inner())
         else:
-            # TODO: Add flag to cli to enable mcp
             tools = []
-            if False:
-                mcp_client = MCPClient()
+            mcp_client: Optional[MCPClient] = None
+
+            if mcp_server:
+                mcp_client = MCPClient(mcp_server)
                 mcp_client.connect_to_mcp_server()
                 tools = mcp_client.list_tools()
 
@@ -590,6 +599,18 @@ def prompt(
                 tools=tools,
                 **kwargs,
             )
+
+            # conversation = conversation or Conversation(
+            #     model=model,
+            #     responses=[response])
+
+            # tool_summary_response = conversation.prompt(prompt=None,
+            #     attachments=resolved_attachments,
+            #     system=system,
+            #     schema=schema,
+            #     tools=tools,
+            #     **kwargs,
+            # )
 
             # TODO: add tool call results to conversation and send back to model for summarization
             # tool_calls = response.tool_calls()
