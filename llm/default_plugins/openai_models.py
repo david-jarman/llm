@@ -11,8 +11,8 @@ import datetime
 from enum import Enum
 import httpx
 import openai
-from openai.types.chat import ChatCompletionToolParam, ChatCompletion, ChatCompletionMessageToolCall
-from openai.types import FunctionDefinition
+from openai.types.chat import ChatCompletionToolParam, ChatCompletionMessageToolCall
+from openai.types.shared_params import FunctionDefinition
 from mcp import Tool
 import os
 
@@ -605,7 +605,7 @@ class Chat(_Shared, KeyModel):
                     yield content
             response.response_json = remove_dict_none_values(combine_chunks(chunks))
         else:
-            completion: ChatCompletion = client.chat.completions.create(
+            completion = client.chat.completions.create(
                 model=self.model_name or self.model_id,
                 messages=messages,
                 stream=False,
@@ -824,7 +824,7 @@ def convert_tool_to_openai(tool: Tool) -> ChatCompletionToolParam:
     return ChatCompletionToolParam(
         function = FunctionDefinition(
             name=tool.name,
-            description=tool.description,
+            description=tool.description if tool.description else "No description given",
             parameters=tool.inputSchema,
         ),
         type="function",

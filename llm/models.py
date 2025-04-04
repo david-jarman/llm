@@ -45,7 +45,7 @@ class Usage:
 
 @dataclass
 class ToolCall:
-    name: str = None
+    name: str
     arguments: Optional[Dict[str, Any]] = None
 
 @dataclass
@@ -792,7 +792,6 @@ class KeyModel(_Model):
         response: Response,
         conversation: Optional[Conversation],
         key: Optional[str],
-        tools: Optional[List[Tool]] = None,
     ) -> Iterator[str]:
         pass
 
