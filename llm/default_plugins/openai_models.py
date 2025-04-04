@@ -564,6 +564,9 @@ class _Shared:
             }
         if stream:
             kwargs["stream_options"] = {"include_usage": True}
+        if prompt.tools:
+            kwargs["tools"] = [convert_tool_to_openai(tool) for tool in prompt.tools]
+            kwargs["tool_choice"] = "auto"
         return kwargs
 
 
@@ -671,29 +674,28 @@ class AsyncChat(_Shared, AsyncKeyModel):
                     usage = chunk.usage.model_dump()
                 chunks.append(chunk)
                 try:
-                    content = chunk.choices[0].delta.content
+                    delta = chunk.choices[0].delta
+                    content = delta.content
+                    response.response_tool_calls = (
+                        [convert_tool_call(tool_call) for tool_call in delta.tool_calls]
+                        if delta.tool_calls
+                        else None
+                    )
                 except IndexError:
                     content = None
                 if content is not None:
                     yield content
             response.response_json = remove_dict_none_values(combine_chunks(chunks))
         else:
-            completion_kwargs = {
-                "model": self.model_name or self.model_id,
-                "messages": messages,
-                "stream": False,
+            completion = await client.chat.completions.create(
+                model=self.model_name or self.model_id,
+                messages=messages,
+                stream=False,
                 **kwargs,
-            }
-            if prompt.tools:
-                completion_kwargs["tools"] = [
-                    convert_tool_to_openai(tool) for tool in prompt.tools
-                ]
-                completion_kwargs["tool_choice"] = "auto"
-            completion = await client.chat.completions.create(**completion_kwargs)
-            usage = completion.usage.model_dump()
-            response.response_json = remove_dict_none_values(completion.model_dump())
-
+            )
             message = completion.choices[0].message
+            response.response_json = remove_dict_none_values(completion.model_dump())
+            usage = completion.usage.model_dump()
 
             response.response_tool_calls = (
                 [convert_tool_call(tool_call) for tool_call in message.tool_calls]
