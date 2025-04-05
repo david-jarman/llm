@@ -274,7 +274,6 @@ class _BaseResponse:
         self._done = False
         self.response_json = None
         self.response_tool_calls: Optional[List[ToolCall]] = None
-        self.response_tool_calls_json = None
         self.conversation = conversation
         self.attachments: List[Attachment] = []
         self._start: Optional[float] = None

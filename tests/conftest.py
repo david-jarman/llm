@@ -2,6 +2,7 @@ import pytest
 import sqlite_utils
 import json
 import llm
+import llm.cli
 from llm.plugins import pm
 from llm.mcp_client import MCPClient
 from pydantic import Field
@@ -180,12 +181,9 @@ class MockMCPClient(MCPClient):
         self._tools = tools
 
     async def connect_to_mcp_server(self) -> None:
-        print("MockMCPClient: connect_to_mcp_server called")
-        # Don't actually connect to anything
         pass
 
     async def list_tools(self):
-        print("MockMCPClient: list_tools called")
         return self._tools
 
 
@@ -221,7 +219,6 @@ def mock_mcp_client(monkeypatch: pytest.MonkeyPatch):
     def mock_create_mcp_client(*args, **kwargs):
         return mock
 
-    # monkeypatch.setattr(llm.mcp_client.MCPClient, "__init__", mock.__init__)
     monkeypatch.setattr(llm.cli, "create_mcp_client", mock_create_mcp_client)
 
     return mock

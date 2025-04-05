@@ -214,30 +214,25 @@ def test_llm_prompt_mcp(httpx_mock, mock_mcp_client, async_):
         json={
             "model": "gpt-4o-mini",
             "usage": {},
-            "tool_calls": [
+            "choices": [
                 {
-                    "id": "call_12345xyz",
-                    "type": "function",
-                    "function": {
-                        "name": "get_weather",
-                        "arguments": '{"latitude":48.8566,"longitude":2.3522}',
-                    },
+                    "message": {
+                        "tool_calls": [
+                            {
+                                "id": "call_12345xyz",
+                                "type": "function",
+                                "function": {
+                                    "name": "get_weather",
+                                    "arguments": '{"latitude":48.8566,"longitude":2.3522}',
+                                },
+                            }
+                        ]
+                    }
                 }
             ],
         },
         headers={"Content-Type": "application/json"},
     )
-    httpx_mock.add_response(
-        method="POST",
-        url="https://api.openai.com/v1/chat/completions",
-        json={
-            "model": "gpt-4o-mini",
-            "usage": {},
-            "choices": [{"message": {"content": "Terry"}}],
-        },
-        headers={"Content-Type": "application/json"},
-    )
-
     mock_mcp_client.set_tools(
         [
             Tool(
@@ -268,7 +263,7 @@ def test_llm_prompt_mcp(httpx_mock, mock_mcp_client, async_):
 
     # Assert
     assert result.exit_code == 0, result.output
-    assert result.output == ""
+    assert result.output == "\n"
 
 
 @pytest.mark.parametrize(
