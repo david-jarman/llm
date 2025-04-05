@@ -1,4 +1,5 @@
 from click.testing import CliRunner
+from mcp import Tool
 import llm
 from llm.cli import cli
 from llm.models import Usage
@@ -201,6 +202,73 @@ def test_llm_prompt_continue(httpx_mock, user_path, async_):
 
     rows = list(log_db["responses"].rows)
     assert len(rows) == 2
+
+
+@mock.patch.dict(os.environ, {"OPENAI_API_KEY": "X"})
+@pytest.mark.parametrize("async_", (False, True))
+def test_llm_prompt_mcp(httpx_mock, mock_mcp_client, async_):
+    # Arrange
+    httpx_mock.add_response(
+        method="POST",
+        url="https://api.openai.com/v1/chat/completions",
+        json={
+            "model": "gpt-4o-mini",
+            "usage": {},
+            "tool_calls": [
+                {
+                    "id": "call_12345xyz",
+                    "type": "function",
+                    "function": {
+                        "name": "get_weather",
+                        "arguments": '{"latitude":48.8566,"longitude":2.3522}',
+                    },
+                }
+            ],
+        },
+        headers={"Content-Type": "application/json"},
+    )
+    httpx_mock.add_response(
+        method="POST",
+        url="https://api.openai.com/v1/chat/completions",
+        json={
+            "model": "gpt-4o-mini",
+            "usage": {},
+            "choices": [{"message": {"content": "Terry"}}],
+        },
+        headers={"Content-Type": "application/json"},
+    )
+
+    mock_mcp_client.set_tools(
+        [
+            Tool(
+                name="get_weather",
+                description="Get the weather",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "latitude": {"type": "number"},
+                        "longitude": {"type": "number"},
+                    },
+                },
+            )
+        ]
+    )
+
+    # First prompt
+    runner = CliRunner()
+    args = [
+        "What is the weather like in Paris today?",
+        "--no-stream",
+        "--mcp",
+        "weather",
+    ] + (["--async"] if async_ else [])
+
+    # Act
+    result = runner.invoke(cli, args, catch_exceptions=False)
+
+    # Assert
+    assert result.exit_code == 0, result.output
+    assert result.output == ""
 
 
 @pytest.mark.parametrize(

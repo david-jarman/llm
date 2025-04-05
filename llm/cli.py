@@ -547,7 +547,7 @@ def prompt(
                 mcp_client: Optional[MCPClient] = None
 
                 if mcp_server:
-                    mcp_client = MCPClient(mcp_server)
+                    mcp_client = create_mcp_client(mcp_server)
                     await mcp_client.connect_to_mcp_server()
                     tools = await mcp_client.list_tools()
 
@@ -584,12 +584,12 @@ def prompt(
             response = asyncio.run(inner())
         else:
 
-            async def inner():
+            async def inner_sync_models():
                 tools = []
                 mcp_client: Optional[MCPClient] = None
 
                 if mcp_server:
-                    mcp_client = MCPClient(mcp_server)
+                    mcp_client = create_mcp_client(mcp_server)
                     await mcp_client.connect_to_mcp_server()
                     tools = await mcp_client.list_tools()
 
@@ -644,7 +644,7 @@ def prompt(
 
                 return response
 
-            response = asyncio.run(inner())
+            response = asyncio.run(inner_sync_models())
     # List of exceptions that should never be raised in pytest:
     except (ValueError, NotImplementedError) as ex:
         raise click.ClickException(str(ex))
@@ -2822,3 +2822,8 @@ def clear_model_option(model_id: str, key: str) -> None:
             del options[model_id]
 
     path.write_text(json.dumps(options, indent=2))
+
+
+def create_mcp_client(server_name: str) -> MCPClient:
+    """Create an MCP client for the specified server."""
+    return MCPClient(server_name)

@@ -3,6 +3,7 @@ import sqlite_utils
 import json
 import llm
 from llm.plugins import pm
+from llm.mcp_client import MCPClient
 from pydantic import Field
 from pytest_httpx import IteratorStream
 from typing import Optional
@@ -169,6 +170,25 @@ class EmbedTextOnly(EmbedDemo):
     supports_binary = False
 
 
+class MockMCPClient(MCPClient):
+    def __init__(self, server_name: str):
+        # Skip the parent's init which would validate server_name
+        # This avoids needing to patch the servers dictionary
+        self._tools = []
+
+    def set_tools(self, tools):
+        self._tools = tools
+
+    async def connect_to_mcp_server(self) -> None:
+        print("MockMCPClient: connect_to_mcp_server called")
+        # Don't actually connect to anything
+        pass
+
+    async def list_tools(self):
+        print("MockMCPClient: list_tools called")
+        return self._tools
+
+
 @pytest.fixture
 def embed_demo():
     return EmbedDemo()
@@ -192,6 +212,19 @@ def mock_key_model():
 @pytest.fixture
 def mock_async_key_model():
     return MockAsyncKeyModel()
+
+
+@pytest.fixture
+def mock_mcp_client(monkeypatch: pytest.MonkeyPatch):
+    mock = MockMCPClient("weather")
+
+    def mock_create_mcp_client(*args, **kwargs):
+        return mock
+
+    # monkeypatch.setattr(llm.mcp_client.MCPClient, "__init__", mock.__init__)
+    monkeypatch.setattr(llm.cli, "create_mcp_client", mock_create_mcp_client)
+
+    return mock
 
 
 @pytest.fixture(autouse=True)
