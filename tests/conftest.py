@@ -176,14 +176,17 @@ class MockMCPClient(MCPClient):
         # Skip the parent's init which would validate server_name
         # This avoids needing to patch the servers dictionary
         self._tools = []
+        self._connected = False
 
     def set_tools(self, tools):
         self._tools = tools
 
     async def connect_to_mcp_server(self) -> None:
-        pass
+        self._connected = True
 
     async def list_tools(self):
+        if not self._connected:
+            raise RuntimeError("MCP client is not connected to a server.")
         return self._tools
 
 
