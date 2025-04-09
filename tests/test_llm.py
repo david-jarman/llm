@@ -264,11 +264,11 @@ def test_llm_prompt_mcp(httpx_mock, mock_mcp_client, async_):
     # Assert
     assert result.exit_code == 0, result.output
     assert result.output == "\n"
-    assert mock_mcp_client.is_connected() == True
+    assert mock_mcp_client.is_connected()
 
     tools_called = mock_mcp_client.tools_called()
     assert len(tools_called) == 1
-    #assert mock_mcp_client.tools_called().rows[0]["name"] == "get_weather"
+    # assert mock_mcp_client.tools_called().rows[0]["name"] == "get_weather"
 
 
 @pytest.mark.parametrize(

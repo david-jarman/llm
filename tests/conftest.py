@@ -198,21 +198,24 @@ class MockMCPClient(MCPClient):
         if not self._connected:
             raise RuntimeError("MCP client is not connected to a server.")
         return self._tools
-    
+
     async def cleanup(self) -> None:
         pass
 
     async def call_tool(self, tool_call: ToolCall) -> CallToolResult:
         if not self._connected:
             raise RuntimeError("MCP client is not connected to a server.")
-        
+
         self._tool_calls.append(tool_call.name)
 
         # Validate that tool_call is in _tools
         for tool in self._tools:
             if tool.name == tool_call.name:
                 return CallToolResult(
-                    content=[TextContent(text="Temperature: 20C", type="text"), TextContent(text="Humidity: 50%", type="text")],
+                    content=[
+                        TextContent(text="Temperature: 20C", type="text"),
+                        TextContent(text="Humidity: 50%", type="text"),
+                    ],
                     error=None,
                 )
 

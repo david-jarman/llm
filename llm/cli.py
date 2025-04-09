@@ -577,7 +577,8 @@ def prompt(
                     tool_calls = await response.tool_calls()
                     if tool_calls and mcp_client:
                         for tool_call in response.response_tool_calls:
-                            result = await mcp_client.call_tool(tool_call)
+                            # Capture result of tool call
+                            await mcp_client.call_tool(tool_call)
 
                     text = await response.text()
                     if extract or extract_last:
@@ -611,28 +612,8 @@ def prompt(
                 tool_calls = response.tool_calls()
                 if tool_calls and mcp_client:
                     for tool_call in response.response_tool_calls:
-                        result = await mcp_client.call_tool(tool_call)
-                        #print(result)
-
-                # conversation = conversation or Conversation(
-                #     model=model,
-                #     responses=[response])
-
-                # tool_summary_response = conversation.prompt(prompt=None,
-                #     attachments=resolved_attachments,
-                #     system=system,
-                #     schema=schema,
-                #     tools=tools,
-                #     **kwargs,
-                # )
-
-                # TODO: add tool call results to conversation and send back to model for summarization
-                # tool_calls = response.tool_calls()
-
-                # if (tool_calls):
-                #    results = mcp_client.call_tools(tool_calls)
-                #    for result in results:
-                #        print(result)
+                        # Capture result of tool call
+                        await mcp_client.call_tool(tool_call)
 
                 if should_stream:
                     for chunk in response:
