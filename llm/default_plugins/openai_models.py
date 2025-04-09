@@ -594,7 +594,6 @@ class Chat(_Shared, KeyModel):
         client = self.get_client(key)
         usage = None
 
-        # TODO: How do we handle tool calls with streaming?
         if stream:
             completion = client.chat.completions.create(
                 model=self.model_name or self.model_id,
@@ -608,7 +607,13 @@ class Chat(_Shared, KeyModel):
                 if chunk.usage:
                     usage = chunk.usage.model_dump()
                 try:
-                    content = chunk.choices[0].delta.content
+                    delta = chunk.choices[0].delta
+                    content = delta.content
+                    if delta.tool_calls:
+                        response.response_tool_calls = [
+                            convert_tool_call(tool_call)
+                            for tool_call in delta.tool_calls
+                        ]
                 except IndexError:
                     content = None
                 if content is not None:

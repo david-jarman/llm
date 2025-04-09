@@ -1,10 +1,13 @@
+from mcp import Tool
 import pytest
 import sqlite_utils
 import json
 import llm
 import llm.cli
+from llm.models import ToolCall
 from llm.plugins import pm
 from llm.mcp_client import MCPClient
+from mcp.types import CallToolResult, TextContent
 from pydantic import Field
 from pytest_httpx import IteratorStream
 from typing import Optional
@@ -176,10 +179,17 @@ class MockMCPClient(MCPClient):
         # Skip the parent's init which would validate server_name
         # This avoids needing to patch the servers dictionary
         self._tools = []
+        self._tool_calls = []
         self._connected = False
 
-    def set_tools(self, tools):
+    def tools_called(self) -> list[str]:
+        return self._tool_calls
+
+    def set_tools(self, tools: list[Tool]):
         self._tools = tools
+
+    def is_connected(self) -> bool:
+        return self._connected
 
     async def connect_to_mcp_server(self) -> None:
         self._connected = True
@@ -188,6 +198,29 @@ class MockMCPClient(MCPClient):
         if not self._connected:
             raise RuntimeError("MCP client is not connected to a server.")
         return self._tools
+    
+    async def cleanup(self) -> None:
+        pass
+
+    async def call_tool(self, tool_call: ToolCall) -> CallToolResult:
+        if not self._connected:
+            raise RuntimeError("MCP client is not connected to a server.")
+        
+        self._tool_calls.append(tool_call.name)
+
+        # Validate that tool_call is in _tools
+        for tool in self._tools:
+            if tool.name == tool_call.name:
+                return CallToolResult(
+                    content=[TextContent(text="Temperature: 20C", type="text"), TextContent(text="Humidity: 50%", type="text")],
+                    error=None,
+                )
+
+        return CallToolResult(
+            id=tool_call.id,
+            result=None,
+            error=f"Tool {tool_call.tool_name} not found",
+        )
 
 
 @pytest.fixture

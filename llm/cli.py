@@ -602,12 +602,11 @@ def prompt(
                     **kwargs,
                 )
 
-                if response.response_tool_calls and mcp_client:
+                tool_calls = response.tool_calls()
+                if tool_calls and mcp_client:
                     for tool_call in response.response_tool_calls:
-                        result = await mcp_client.call_tool(
-                            tool_call.name, tool_call.arguments or {}
-                        )
-                        print(result)
+                        result = await mcp_client.call_tool(tool_call)
+                        #print(result)
 
                 # conversation = conversation or Conversation(
                 #     model=model,
