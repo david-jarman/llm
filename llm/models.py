@@ -597,6 +597,10 @@ class AsyncResponse(_BaseResponse):
         await self._force()
         return self.response_json
 
+    async def tool_calls(self) -> Optional[List[ToolCall]]:
+        await self._force()
+        return self.response_tool_calls
+
     async def duration_ms(self) -> int:
         await self._force()
         return int(((self._end or 0) - (self._start or 0)) * 1000)

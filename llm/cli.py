@@ -573,6 +573,12 @@ def prompt(
                         tools=tools,
                         **kwargs,
                     )
+
+                    tool_calls = await response.tool_calls()
+                    if tool_calls and mcp_client:
+                        for tool_call in response.response_tool_calls:
+                            result = await mcp_client.call_tool(tool_call)
+
                     text = await response.text()
                     if extract or extract_last:
                         text = (
